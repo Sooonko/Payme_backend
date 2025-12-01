@@ -1,0 +1,73 @@
+version: '3.9'
+
+services:
+  db_master:
+    container_name: db_master
+    image: bitnamilegacy/postgresql:15.3.0
+    ports:
+      - 5442:5432
+    volumes:
+      - db_master_data:/bitnami/postgresql
+      - ./payme/src/main/resources/db/init:/docker-entrypoint-initdb.d
+    environment:
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=password
+      - POSTGRESQL_DATABASE=payme_db
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=my_repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=my_repl_password
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "20m"
+    # restart: always
+    networks:
+      - net_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d payme_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  db_slave1:
+    container_name: db_slave1
+    image: bitnamilegacy/postgresql:15.3.0
+    ports:
+      - 5443:5432
+    # volumes:
+    #   - db_slave_data:/bitnami/postgresql
+    environment:
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=password
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_MASTER_HOST=db_master
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+      - POSTGRESQL_REPLICATION_USER=my_repl_user
+      - POSTGRESQL_REPLICATION_PASSWORD=my_repl_password
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "20m"
+    # restart: always
+    networks:
+      - net_db
+    depends_on:
+      - db_master
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d payme_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_master_data:
+  # db_slave_data:
+
+networks:
+  net_db:
+    external: false
+
+
+# docker volume create --name=db_master_data
+# docker volume create --name=db_slave_data
