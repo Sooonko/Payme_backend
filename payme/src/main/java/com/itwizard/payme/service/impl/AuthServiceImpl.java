@@ -14,6 +14,7 @@ import com.itwizard.payme.repository.UserRepository;
 import com.itwizard.payme.security.JwtTokenProvider;
 import com.itwizard.payme.service.AuditService;
 import com.itwizard.payme.service.AuthService;
+import com.itwizard.payme.service.WalletService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuditService auditService;
+    private final WalletService walletService;
 
     @Override
     @Transactional
@@ -58,6 +60,9 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         accountRepository.save(account);
+
+        // Create Wallet with 0 balance
+        walletService.createWallet(user.getId(), "MNT");
 
         // Log registration
         auditService.logAction(user.getId(), "REGISTER", "User registered: " + user.getEmail(), null);

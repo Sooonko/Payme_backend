@@ -10,14 +10,7 @@ CREATE TABLE accounts (
     CONSTRAINT fk_accounts_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- 2. Migrate data from Users to Accounts
-INSERT INTO accounts (id, user_id, name, phone, updated_at)
-SELECT gen_random_uuid(), id, name, phone, updated_at FROM users;
-
--- 3. Update Users table
-ALTER TABLE users DROP COLUMN name;
-ALTER TABLE users DROP COLUMN phone;
-ALTER TABLE users ADD COLUMN role VARCHAR(50) NOT NULL DEFAULT 'USER';
+-- Note: No data migration needed since users table never had name/phone columns
 
 -- 4. Create External Transactions table
 CREATE TABLE external_transactions (
@@ -47,11 +40,31 @@ CREATE TABLE beneficiaries (
 );
 
 -- 6. Update Transactions table
-ALTER TABLE transactions ADD COLUMN idempotency_key VARCHAR(255);
-ALTER TABLE transactions ADD CONSTRAINT uk_transactions_idempotency_key UNIQUE (idempotency_key);
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(255);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_transactions_idempotency_key ON transactions(idempotency_key);
 
 -- 7. Update Audit Logs table (Change ID to BigInt)
--- Warning: This drops existing IDs. In production, you'd want a more complex migration.
-ALTER TABLE audit_logs DROP CONSTRAINT audit_logs_pkey;
-ALTER TABLE audit_logs DROP COLUMN id;
-ALTER TABLE audit_logs ADD COLUMN id BIGSERIAL PRIMARY KEY;
+-- Create a new table with the correct structure
+CREATE TABLE audit_logs_new (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID,
+    action VARCHAR(255) NOT NULL,
+    ip_address VARCHAR(50),
+    details TEXT,
+    timestamp TIMESTAMP NOT NULL
+);
+
+-- Copy data from old table to new table
+INSERT INTO audit_logs_new (user_id, action, ip_address, details, timestamp)
+SELECT user_id, action, ip_address, details, timestamp FROM audit_logs;
+
+-- Drop old table and rename new table
+DROP TABLE audit_logs;
+ALTER TABLE audit_logs_new RENAME TO audit_logs;
+
+-- Recreate indexes
+CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
+CREATE INDEX idx_audit_logs_timestamp ON audit_logs(timestamp);
+
+-- Add foreign key constraint
+ALTER TABLE audit_logs ADD CONSTRAINT fk_audit_logs_user FOREIGN KEY (user_id) REFERENCES users(id);

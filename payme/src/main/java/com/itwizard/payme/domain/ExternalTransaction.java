@@ -46,6 +46,15 @@ public class ExternalTransaction {
     @Column(columnDefinition = "TEXT")
     private String rawResponse;
 
+    @Column(name = "qpay_invoice_id")
+    private String qpayInvoiceId;
+
+    @Column(name = "qpay_qr_text", columnDefinition = "TEXT")
+    private String qpayQrText;
+
+    @Column(name = "qpay_payment_id")
+    private String qpayPaymentId;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

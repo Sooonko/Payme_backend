@@ -8,4 +8,6 @@ public interface WalletService {
     WalletResponse getWalletByUserId(UUID userId);
 
     WalletResponse getWalletById(UUID walletId);
+
+    WalletResponse createWallet(UUID userId, String currency);
 }

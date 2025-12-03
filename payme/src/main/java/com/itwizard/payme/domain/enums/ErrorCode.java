@@ -1,5 +1,8 @@
 package com.itwizard.payme.domain.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum ErrorCode {
     // Authentication & Authorization
     INVALID_CREDENTIALS("AUTH001", "Invalid email or password"),
@@ -35,11 +38,4 @@ public enum ErrorCode {
         this.description = description;
     }
 
-    public String getCode() {
-        return code;
-    }
-
-    public String getDescription() {
-        return description;
-    }
 }
