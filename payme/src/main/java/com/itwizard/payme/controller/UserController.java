@@ -1,11 +1,13 @@
 package com.itwizard.payme.controller;
 
+import com.itwizard.payme.dto.request.UpdateUserRequest;
 import com.itwizard.payme.dto.response.SearchUserResponse;
 import com.itwizard.payme.dto.response.StandardResponse;
 import com.itwizard.payme.dto.response.UserResponse;
 import com.itwizard.payme.security.CurrentUser;
 import com.itwizard.payme.security.UserPrincipal;
 import com.itwizard.payme.service.UserService;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,14 @@ public class UserController {
             @CurrentUser @NotNull UserPrincipal userPrincipal) {
         UserResponse response = userService.getCurrentUser(userPrincipal.getId());
         return ResponseEntity.ok(StandardResponse.success(response, "User retrieved successfully"));
+    }
+
+    @PutMapping("/update")
+    public ResponseEntity<StandardResponse<UserResponse>> updateUser(
+            @CurrentUser @NotNull UserPrincipal userPrincipal,
+            @RequestBody @Valid UpdateUserRequest request) {
+        UserResponse response = userService.updateUser(userPrincipal.getId(), request);
+        return ResponseEntity.ok(StandardResponse.success(response, "User updated successfully"));
     }
 
     @GetMapping("/{id}")

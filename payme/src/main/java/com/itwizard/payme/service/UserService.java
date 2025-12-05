@@ -1,5 +1,6 @@
 package com.itwizard.payme.service;
 
+import com.itwizard.payme.dto.request.UpdateUserRequest;
 import com.itwizard.payme.dto.response.SearchUserResponse;
 import com.itwizard.payme.dto.response.UserResponse;
 
@@ -13,4 +14,6 @@ public interface UserService {
     UserResponse getCurrentUser(UUID userId);
 
     List<SearchUserResponse> searchUsers(String query);
+
+    UserResponse updateUser(UUID userId, UpdateUserRequest request);
 }
