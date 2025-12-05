@@ -1,5 +1,6 @@
 package com.itwizard.payme.dto.response;
 
+import com.itwizard.payme.domain.enums.TransactionFlow;
 import com.itwizard.payme.domain.enums.TransactionStatus;
 import com.itwizard.payme.domain.enums.TransactionType;
 import lombok.AllArgsConstructor;
@@ -22,4 +23,5 @@ public class TransactionResponse {
     private TransactionStatus status;
     private String description;
     private LocalDateTime createdAt;
+    private TransactionFlow flow;
 }

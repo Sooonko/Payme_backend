@@ -281,6 +281,10 @@
 
 ## Transactions (Income & Expense)
 
+> **Note:** All transaction responses include a `flow` field that indicates the transaction direction from the current user's perspective:
+> - `INFLOW`: Money received (income)
+> - `OUTFLOW`: Money sent (expense)
+
 ### 1. Send Money (Transfer)
 **Endpoint:** `POST /api/v1/transactions/send`
 
@@ -305,10 +309,11 @@
     "fromWalletId": "w1w2w3w4-w5w6-w7w8-w9w0-w1w2w3w4w5w6",
     "toWalletId": "w9w0-w1w2w3w4w5w6-w1w2w3w4-w5w6-w7w8",
     "amount": 1000.00,
-    "type": "TRANSFER",
+    "type": "SEND",
     "status": "COMPLETED",
     "description": "Lunch money",
-    "createdAt": "2023-10-27T10:30:00"
+    "createdAt": "2023-10-27T10:30:00",
+    "flow": "OUTFLOW"
   },
   "timestamp": "2023-10-27T10:30:00.123456"
 }
@@ -330,20 +335,22 @@
       "fromWalletId": "w1w2w3w4-w5w6-w7w8-w9w0-w1w2w3w4w5w6",
       "toWalletId": "w9w0-w1w2w3w4w5w6-w1w2w3w4-w5w6-w7w8",
       "amount": 1000.00,
-      "type": "TRANSFER",
+      "type": "SEND",
       "status": "COMPLETED",
       "description": "Lunch money",
-      "createdAt": "2023-10-27T10:30:00"
+      "createdAt": "2023-10-27T10:30:00",
+      "flow": "OUTFLOW"
     },
     {
       "id": "t9t0-t1t2t3t4t5t6-t1t2t3t4-t5t6-t7t8",
       "fromWalletId": "w9w0-w1w2w3w4w5w6-w1w2w3w4-w5w6-w7w8",
       "toWalletId": "w1w2w3w4-w5w6-w7w8-w9w0-w1w2w3w4w5w6",
       "amount": 500.00,
-      "type": "TRANSFER",
+      "type": "SEND",
       "status": "COMPLETED",
       "description": "Refund",
-      "createdAt": "2023-10-26T14:20:00"
+      "createdAt": "2023-10-26T14:20:00",
+      "flow": "INFLOW"
     }
   ],
   "timestamp": "2023-10-27T10:35:00.123456"
@@ -366,10 +373,11 @@
       "fromWalletId": "w1w2w3w4-w5w6-w7w8-w9w0-w1w2w3w4w5w6",
       "toWalletId": "w9w0-w1w2w3w4w5w6-w1w2w3w4-w5w6-w7w8",
       "amount": 1000.00,
-      "type": "TRANSFER",
+      "type": "SEND",
       "status": "COMPLETED",
       "description": "Lunch money",
-      "createdAt": "2023-10-27T10:30:00"
+      "createdAt": "2023-10-27T10:30:00",
+      "flow": "OUTFLOW"
     }
   ],
   "timestamp": "2023-10-27T10:35:00.123456"
