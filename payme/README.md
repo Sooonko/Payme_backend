@@ -38,6 +38,7 @@ A secure and scalable digital wallet backend built with Spring Boot, providing c
 erDiagram
     User ||--o{ Wallet : has
     User ||--o{ Account : has
+    User ||--o{ PaymentCard : has
     User ||--o{ AuditLog : generates
     Wallet ||--o{ Transaction : "from/to"
     Wallet ||--o{ ExternalTransaction : has
@@ -100,6 +101,21 @@ erDiagram
         string phone
         string relationship
         timestamp created_at
+    }
+
+    PaymentCard {
+        UUID id PK
+        UUID user_id FK
+        string card_number_last4
+        string card_holder_name
+        string card_type
+        int expiry_month
+        int expiry_year
+        boolean is_default
+        boolean is_verified
+        string card_token UK
+        timestamp created_at
+        timestamp updated_at
     }
 
     AuditLog {
@@ -221,6 +237,7 @@ Migrations are managed by Flyway and located in `src/main/resources/db/migration
 - `V4` - Create audit logs table
 - `V5` - Refine relationships
 - `V6` - Advanced architecture (accounts, external transactions, beneficiaries)
+- `V7` - Create payment cards table
 
 ## 🧪 Testing
 

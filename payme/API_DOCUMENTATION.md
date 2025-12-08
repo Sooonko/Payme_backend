@@ -383,3 +383,241 @@
   "timestamp": "2023-10-27T10:35:00.123456"
 }
 ```
+
+---
+
+## Payment Cards
+
+> **Security Note**: All card data is tokenized via payment gateways (Stripe, QPay, etc.). Full card numbers and CVV codes are NEVER stored in the database.
+
+### 1. Add Payment Card
+**Endpoint:** `POST /api/v1/cards`
+
+**Description:** Adds a new payment card to the user's account. The card is tokenized via a payment gateway before being stored.
+
+**Request Body:**
+```json
+{
+  "cardHolderName": "John Doe",           // Required, max 255 characters
+  "cardNumberLast4": "4242",              // Required, exactly 4 digits
+  "cardType": "VISA",                     // Required: VISA, MASTERCARD, AMERICAN_EXPRESS, DISCOVER, JCB, UNIONPAY, OTHER
+  "expiryMonth": 12,                      // Required, 1-12
+  "expiryYear": 2025,                     // Required, must be in the future
+  "cardToken": "tok_1234567890",          // Required, token from payment gateway
+  "isDefault": true                       // Optional, default: false
+}
+```
+
+**Success Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "Card added successfully",
+  "data": {
+    "id": "c1c2c3c4-c5c6-c7c8-c9c0-c1c2c3c4c5c6",
+    "cardHolderName": "John Doe",
+    "cardNumberLast4": "4242",
+    "cardType": "VISA",
+    "expiryMonth": 12,
+    "expiryYear": 2025,
+    "isDefault": true,
+    "isVerified": false,
+    "createdAt": "2023-10-27T10:40:00"
+  },
+  "timestamp": "2023-10-27T10:40:00.123456"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "This card has already been added",
+  "errorCode": "BAD_REQUEST",
+  "data": null,
+  "timestamp": "2023-10-27T10:40:00.123456"
+}
+```
+
+---
+
+### 2. Get All Payment Cards
+**Endpoint:** `GET /api/v1/cards`
+
+**Description:** Retrieves all payment cards for the current user, ordered by default status and creation date (default cards first).
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Cards retrieved successfully",
+  "data": [
+    {
+      "id": "c1c2c3c4-c5c6-c7c8-c9c0-c1c2c3c4c5c6",
+      "cardHolderName": "John Doe",
+      "cardNumberLast4": "4242",
+      "cardType": "VISA",
+      "expiryMonth": 12,
+      "expiryYear": 2025,
+      "isDefault": true,
+      "isVerified": true,
+      "createdAt": "2023-10-27T10:40:00"
+    },
+    {
+      "id": "c9c0-c1c2c3c4c5c6-c1c2c3c4-c5c6-c7c8",
+      "cardHolderName": "John Doe",
+      "cardNumberLast4": "5555",
+      "cardType": "MASTERCARD",
+      "expiryMonth": 6,
+      "expiryYear": 2026,
+      "isDefault": false,
+      "isVerified": true,
+      "createdAt": "2023-10-26T14:20:00"
+    }
+  ],
+  "timestamp": "2023-10-27T10:45:00.123456"
+}
+```
+
+**Success Response (Empty List):**
+```json
+{
+  "success": true,
+  "message": "Cards retrieved successfully",
+  "data": [],
+  "timestamp": "2023-10-27T10:45:00.123456"
+}
+```
+
+---
+
+### 3. Get Default Payment Card
+**Endpoint:** `GET /api/v1/cards/default`
+
+**Description:** Retrieves the user's default payment card.
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Default card retrieved successfully",
+  "data": {
+    "id": "c1c2c3c4-c5c6-c7c8-c9c0-c1c2c3c4c5c6",
+    "cardHolderName": "John Doe",
+    "cardNumberLast4": "4242",
+    "cardType": "VISA",
+    "expiryMonth": 12,
+    "expiryYear": 2025,
+    "isDefault": true,
+    "isVerified": true,
+    "createdAt": "2023-10-27T10:40:00"
+  },
+  "timestamp": "2023-10-27T10:50:00.123456"
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "message": "No default card found",
+  "errorCode": "RESOURCE_NOT_FOUND",
+  "data": null,
+  "timestamp": "2023-10-27T10:50:00.123456"
+}
+```
+
+---
+
+### 4. Delete Payment Card
+**Endpoint:** `DELETE /api/v1/cards/{cardId}`
+
+**Description:** Deletes a payment card from the user's account. If the deleted card was the default, another card will automatically be set as default.
+
+**Path Parameters:**
+* `cardId`: UUID of the card to delete
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Card deleted successfully",
+  "data": null,
+  "timestamp": "2023-10-27T10:55:00.123456"
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "message": "Card not found",
+  "errorCode": "RESOURCE_NOT_FOUND",
+  "data": null,
+  "timestamp": "2023-10-27T10:55:00.123456"
+}
+```
+
+**Error Response (403 Forbidden):**
+```json
+{
+  "success": false,
+  "message": "You do not have permission to delete this card",
+  "errorCode": "BAD_REQUEST",
+  "data": null,
+  "timestamp": "2023-10-27T10:55:00.123456"
+}
+```
+
+---
+
+### 5. Set Default Payment Card
+**Endpoint:** `PUT /api/v1/cards/{cardId}/default`
+
+**Description:** Sets the specified card as the user's default payment card. The previous default card will be automatically unmarked.
+
+**Path Parameters:**
+* `cardId`: UUID of the card to set as default
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Default card updated successfully",
+  "data": {
+    "id": "c9c0-c1c2c3c4c5c6-c1c2c3c4-c5c6-c7c8",
+    "cardHolderName": "John Doe",
+    "cardNumberLast4": "5555",
+    "cardType": "MASTERCARD",
+    "expiryMonth": 6,
+    "expiryYear": 2026,
+    "isDefault": true,
+    "isVerified": true,
+    "createdAt": "2023-10-26T14:20:00"
+  },
+  "timestamp": "2023-10-27T11:00:00.123456"
+}
+```
+
+**Error Response (404 Not Found):**
+```json
+{
+  "success": false,
+  "message": "Card not found",
+  "errorCode": "RESOURCE_NOT_FOUND",
+  "data": null,
+  "timestamp": "2023-10-27T11:00:00.123456"
+}
+```
+
+**Error Response (403 Forbidden):**
+```json
+{
+  "success": false,
+  "message": "You do not have permission to modify this card",
+  "errorCode": "BAD_REQUEST",
+  "data": null,
+  "timestamp": "2023-10-27T11:00:00.123456"
+}
+```
+
