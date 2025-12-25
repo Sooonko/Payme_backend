@@ -26,7 +26,7 @@ public class PaymentCardController {
     /**
      * Add a new payment card
      */
-    @PostMapping
+    @PostMapping("/add")
     public ResponseEntity<StandardResponse<CardResponse>> addCard(
             @CurrentUser @NotNull UserPrincipal userPrincipal,
             @Valid @RequestBody AddCardRequest request) {

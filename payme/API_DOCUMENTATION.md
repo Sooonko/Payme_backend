@@ -391,7 +391,7 @@
 > **Security Note**: All card data is tokenized via payment gateways (Stripe, QPay, etc.). Full card numbers and CVV codes are NEVER stored in the database.
 
 ### 1. Add Payment Card
-**Endpoint:** `POST /api/v1/cards`
+**Endpoint:** `POST /api/v1/cards/add`
 
 **Description:** Adds a new payment card to the user's account. The card is tokenized via a payment gateway before being stored.
 

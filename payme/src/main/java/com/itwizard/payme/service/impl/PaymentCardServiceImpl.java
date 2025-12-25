@@ -17,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -66,7 +65,7 @@ public class PaymentCardServiceImpl implements PaymentCardService {
 
         // Log action
         auditService.logAction(userId, "CARD_ADDED",
-                "Added card: " + request.getCardType() + " •••• " + request.getCardNumberLast4(),
+                "Added card: " + request.getCardType() + request.getCardNumberLast4(),
                 null);
 
         return mapToResponse(card);
@@ -79,7 +78,7 @@ public class PaymentCardServiceImpl implements PaymentCardService {
 
         return cards.stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -95,7 +94,7 @@ public class PaymentCardServiceImpl implements PaymentCardService {
         }
 
         // If deleting default card and user has other cards, set another as default
-        if (card.getIsDefault()) {
+        if (Boolean.TRUE.equals(card.getIsDefault())) {
             List<PaymentCard> otherCards = paymentCardRepository
                     .findByUserIdOrderByIsDefaultDescCreatedAtDesc(userId)
                     .stream()
@@ -103,7 +102,7 @@ public class PaymentCardServiceImpl implements PaymentCardService {
                     .toList();
 
             if (!otherCards.isEmpty()) {
-                PaymentCard newDefault = otherCards.get(0);
+                PaymentCard newDefault = otherCards.getFirst();
                 newDefault.setIsDefault(true);
                 paymentCardRepository.save(newDefault);
             }
