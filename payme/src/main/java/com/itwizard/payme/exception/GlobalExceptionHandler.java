@@ -4,11 +4,22 @@ import com.itwizard.payme.domain.enums.ErrorCode;
 import com.itwizard.payme.dto.response.StandardResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<StandardResponse<Void>> handleMethodNotSupportedException(
+            HttpRequestMethodNotSupportedException ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(StandardResponse.error(
+                        "Endpoint not found or method not supported",
+                        ErrorCode.INTERNAL_SERVER_ERROR));
+    }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<StandardResponse<Void>> handleResourceNotFoundException(ResourceNotFoundException ex) {

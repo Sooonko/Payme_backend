@@ -24,4 +24,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
 
     @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.fromWallet.user.id = :userId AND t.createdAt >= :startDate AND t.type = 'SEND' AND t.status = 'COMPLETED'")
     BigDecimal calculateDailyTotal(@Param("userId") UUID userId, @Param("startDate") LocalDateTime startDate);
+
+    @Query("SELECT SUM(t.amount) FROM Transaction t WHERE (t.fromWallet.user.id = :userId OR t.toWallet.user.id = :userId) AND t.createdAt >= :since AND t.status = 'COMPLETED'")
+    BigDecimal calculateTotalVolume(@Param("userId") UUID userId, @Param("since") LocalDateTime since);
 }

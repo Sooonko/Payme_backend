@@ -621,3 +621,157 @@
 }
 ```
 
+## Loans
+
+### 1. Check Loan Eligibility
+Check if the current user is eligible for a loan and calculate their maximum limit.
+
+**URL:** `/api/v1/loans/eligibility`
+**Method:** `GET`
+**Auth Required:** Yes
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Wait! You have loan options available.",
+  "data": {
+    "eligible": true,
+    "message": "Wait! You have loan options available.",
+    "options": [
+      {
+        "productId": "550e8400-e29b-41d4-a716-446655440000",
+        "productName": "Payme Nano Loan",
+        "maxEligibleAmount": 500000.0,
+        "interestRateMonthly": 3.5,
+        "penaltyRateDaily": 0.5,
+        "minTenorMonths": 1,
+        "maxTenorMonths": 3,
+        "statusMessage": "Eligible"
+      },
+      {
+        "productId": "660e8400-e29b-41d4-a716-446655440000",
+        "productName": "Payme Plus Loan",
+        "maxEligibleAmount": 0.0,
+        "interestRateMonthly": 2.5,
+        "penaltyRateDaily": 0.3,
+        "minTenorMonths": 3,
+        "maxTenorMonths": 12,
+        "statusMessage": "Your scoring does not meet the minimum requirements for this product."
+      }
+    ]
+  },
+  "timestamp": "2023-10-27T11:00:00.123456"
+}
+```
+
+### 2. Apply for Loan
+Submit a loan application.
+
+**URL:** `/api/v1/loans/apply`
+**Method:** `POST`
+**Auth Required:** Yes
+
+**Request Body:**
+```json
+{
+  "productId": "550e8400-e29b-41d4-a716-446655440000",
+  "requestedAmount": 200000.0,
+  "tenorMonths": 2
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Loan application submitted successfully",
+  "data": {
+    "applicationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "userId": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+    "productId": "550e8400-e29b-41d4-a716-446655440000",
+    "requestedAmount": 200000.0,
+    "maxEligibleAmount": 500000.0,
+    "tenorMonths": 2,
+    "status": "PENDING",
+    "message": "Loan application submitted successfully. It is currently under review.",
+    "createdAt": "2023-10-27T11:00:00.123456"
+  },
+  "timestamp": "2023-10-27T11:00:00.123456"
+}
+```
+
+### 3. Create Loan Product
+Register a new loan product (Typically for internal/admin use).
+
+**URL:** `/api/v1/loans/products`
+**Method:** `POST`
+**Auth Required:** Yes
+
+**Request Body:**
+```json
+{
+  "name": "Payme Nano Loan",
+  "description": "Short term loan for daily expenses",
+  "interestRateMonthly": 3.5,
+  "penaltyRateDaily": 0.5,
+  "minAmount": 50000.0,
+  "maxAmount": 1000000.0,
+  "minTenorMonths": 1,
+  "maxTenorMonths": 6
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Loan product created successfully",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Payme Nano Loan",
+    "description": "Short term loan for daily expenses",
+    "interestRateMonthly": 3.5,
+    "penaltyRateDaily": 0.5,
+    "minAmount": 50000.0,
+    "maxAmount": 1000000.0,
+    "minTenorMonths": 1,
+    "maxTenorMonths": 6,
+    "createdAt": "2023-10-27T11:00:00.123456",
+    "updatedAt": "2023-10-27T11:00:00.123456"
+  },
+  "timestamp": "2023-10-27T11:00:00.123456"
+}
+```
+
+### 4. Get All Loan Products
+Retrieve a list of all available loan products.
+
+**URL:** `/api/v1/loans/products`
+**Method:** `GET`
+**Auth Required:** Yes
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Operation completed successfully",
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "name": "Payme Nano Loan",
+      "description": "Short term loan for daily expenses",
+      "interestRateMonthly": 3.5,
+      "penaltyRateDaily": 0.5,
+      "minAmount": 50000.0,
+      "maxAmount": 1000000.0,
+      "minTenorMonths": 1,
+      "maxTenorMonths": 6,
+      "createdAt": "2023-10-27T11:00:00.123456",
+      "updatedAt": "2023-10-27T11:00:00.123456"
+    }
+  ],
+  "timestamp": "2023-10-27T11:00:00.123456"
+}
+```
+
