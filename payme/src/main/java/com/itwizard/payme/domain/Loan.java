@@ -56,6 +56,12 @@ public class Loan {
 
     private LocalDateTime closedAt;
 
+    @Column(nullable = false)
+    private LocalDateTime endDate;
+
+    @Column(nullable = false)
+    private LocalDateTime startDate;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

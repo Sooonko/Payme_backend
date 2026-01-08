@@ -15,10 +15,14 @@ import java.util.UUID;
 public class LoanProductOption {
     private UUID productId;
     private String productName;
+    private String description;
+    private BigDecimal minAmount;
+    private BigDecimal maxAmount;
     private BigDecimal maxEligibleAmount;
     private BigDecimal interestRateMonthly;
     private BigDecimal penaltyRateDaily;
     private Integer minTenorMonths;
     private Integer maxTenorMonths;
     private String statusMessage;
+    private boolean isChecked;
 }

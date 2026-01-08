@@ -14,6 +14,8 @@ import com.itwizard.payme.dto.response.LoanApplicationResponse;
 import com.itwizard.payme.exception.BadRequestException;
 import com.itwizard.payme.exception.ResourceNotFoundException;
 import com.itwizard.payme.repository.LoanApplicationRepository;
+import com.itwizard.payme.domain.LoanEligibility;
+import com.itwizard.payme.repository.LoanEligibilityRepository;
 import com.itwizard.payme.repository.LoanProductRepository;
 import com.itwizard.payme.repository.LoanRepository;
 import com.itwizard.payme.repository.UserRepository;
@@ -24,7 +26,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -36,66 +40,58 @@ public class LoanServiceImpl implements LoanService {
     private final LoanApplicationRepository loanApplicationRepository;
     private final UserRepository userRepository;
     private final LoanScoringService loanScoringService;
+    private final LoanEligibilityRepository loanEligibilityRepository;
+    private final com.itwizard.payme.repository.WalletRepository walletRepository;
+    private final com.itwizard.payme.repository.TransactionRepository transactionRepository;
 
     @Override
-    public LoanEligibilityResponse checkEligibility(UUID userId) {
+    @Transactional
+    public LoanEligibilityResponse checkProductEligibility(UUID userId, UUID productId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        LoanProduct product = loanProductRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Loan product not found"));
+
         // 1. Check if user already has an active loan
-        List<Loan> activeLoans = loanRepository.findByUserAndStatus(user, LoanStatus.ACTIVE);
-        if (!activeLoans.isEmpty()) {
+        if (!loanRepository.findByUserAndStatus(user, LoanStatus.ACTIVE).isEmpty()) {
             return LoanEligibilityResponse.builder()
-                    .eligible(false)
-                    .message("You already have an active loan. Please close it before applying for a new one.")
+                    .success(false)
+                    .message("You already have an active loan.")
                     .build();
         }
 
-        // 2. Get all loan products
-        List<LoanProduct> products = loanProductRepository.findAll();
-        if (products.isEmpty()) {
-            return LoanEligibilityResponse.builder()
-                    .eligible(false)
-                    .message("No loan products are currently available.")
-                    .build();
+        // 2. Perform scoring
+        BigDecimal maxLimit = loanScoringService.calculateMaxEligibleAmount(user, product);
+
+        String statusMessage;
+        boolean isEligible;
+        if (maxLimit.compareTo(product.getMinAmount()) < 0) {
+            statusMessage = "Your scoring does not meet the minimum requirements for this product.";
+            maxLimit = BigDecimal.ZERO;
+            isEligible = false;
+        } else {
+            statusMessage = "Eligible for loan product: " + product.getName();
+            isEligible = true;
         }
 
-        // 3. Calculate limit for each product
-        List<LoanProductOption> options = products.stream()
-                .map(product -> {
-                    BigDecimal maxLimit = loanScoringService.calculateMaxEligibleAmount(user, product);
+        // 3. Persist result
+        LoanEligibility eligibility = loanEligibilityRepository.findByUserAndProduct(user, product)
+                .orElse(LoanEligibility.builder()
+                        .user(user)
+                        .product(product)
+                        .build());
 
-                    String statusMessage;
-                    BigDecimal finalLimit = maxLimit;
+        eligibility.setMaxEligibleAmount(maxLimit);
+        eligibility.setStatusMessage(statusMessage);
+        eligibility.setChecked(true);
 
-                    if (maxLimit.compareTo(product.getMinAmount()) < 0) {
-                        statusMessage = "Your scoring does not meet the minimum requirements for this product.";
-                        finalLimit = BigDecimal.ZERO;
-                    } else {
-                        statusMessage = "Eligible";
-                    }
+        loanEligibilityRepository.save(eligibility);
 
-                    return LoanProductOption.builder()
-                            .productId(product.getId())
-                            .productName(product.getName())
-                            .maxEligibleAmount(finalLimit)
-                            .interestRateMonthly(product.getInterestRateMonthly())
-                            .penaltyRateDaily(product.getPenaltyRateDaily())
-                            .minTenorMonths(product.getMinTenorMonths())
-                            .maxTenorMonths(product.getMaxTenorMonths())
-                            .statusMessage(statusMessage)
-                            .build();
-                })
-                .toList();
-
-        boolean anyEligible = options.stream()
-                .anyMatch(opt -> opt.getMaxEligibleAmount().compareTo(BigDecimal.ZERO) > 0);
-
+        // 4. Return simple success/failure status
         return LoanEligibilityResponse.builder()
-                .eligible(anyEligible)
-                .message(anyEligible ? "Wait! You have loan options available."
-                        : "Currently, you don't qualify for any loan products.")
-                .options(options)
+                .success(isEligible)
+                .message(statusMessage)
                 .build();
     }
 
@@ -142,9 +138,60 @@ public class LoanServiceImpl implements LoanService {
         application.setRequestedAmount(request.getRequestedAmount());
         application.setMaxEligibleAmount(maxLimit);
         application.setTenorMonths(request.getTenorMonths());
-        application.setStatus(LoanApplicationStatus.PENDING);
+        application.setStatus(LoanApplicationStatus.APPROVED);
+        application.setDisbursedAt(java.time.LocalDateTime.now());
 
         LoanApplication savedApplication = loanApplicationRepository.save(application);
+
+        // 5. Create Active Loan
+        Loan loan = new Loan();
+        loan.setApplication(savedApplication);
+        loan.setUser(user);
+
+        // Find user's wallet
+        com.itwizard.payme.domain.Wallet wallet = walletRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Wallet not found for user"));
+        loan.setWallet(wallet);
+
+        loan.setPrincipalAmount(request.getRequestedAmount());
+        loan.setRemainingBalance(request.getRequestedAmount());
+        loan.setInterestRate(product.getInterestRateMonthly());
+        loan.setPenaltyRate(product.getPenaltyRateDaily());
+        loan.setStatus(LoanStatus.ACTIVE);
+        LocalDateTime now = java.time.LocalDateTime.now();
+        loan.setDisbursedAt(now);
+        loan.setStartDate(now);
+        loan.setEndDate(now.plusMonths(request.getTenorMonths()));
+
+        loanRepository.save(loan);
+
+        // 6. Credit Wallet
+        wallet.setBalance(wallet.getBalance().add(request.getRequestedAmount()));
+        walletRepository.save(wallet);
+
+        // 7. Create Transaction Record
+        com.itwizard.payme.domain.Transaction transaction = new com.itwizard.payme.domain.Transaction();
+        transaction.setToWallet(wallet);
+        transaction.setAmount(request.getRequestedAmount());
+        transaction.setType(com.itwizard.payme.domain.enums.TransactionType.LOAN_DISBURSEMENT);
+        transaction.setStatus(com.itwizard.payme.domain.enums.TransactionStatus.COMPLETED);
+        transaction.setDescription("Loan disbursement for application: " + savedApplication.getId());
+        transaction.setCreatedAt(java.time.LocalDateTime.now());
+
+        transactionRepository.save(transaction);
+
+        // 8. Deduct eligibility limit
+        // Retrieve the eligibility record again to ensure we have the latest one
+        LoanEligibility eligibility = loanEligibilityRepository.findByUserAndProduct(user, product).orElse(null);
+        if (eligibility != null) {
+            BigDecimal newLimit = eligibility.getMaxEligibleAmount().subtract(request.getRequestedAmount());
+            if (newLimit.compareTo(BigDecimal.ZERO) < 0) {
+                newLimit = BigDecimal.ZERO;
+            }
+            eligibility.setMaxEligibleAmount(newLimit);
+            eligibility.setStatusMessage("Active Loan: " + request.getRequestedAmount());
+            loanEligibilityRepository.save(eligibility);
+        }
 
         return LoanApplicationResponse.builder()
                 .applicationId(savedApplication.getId())
@@ -154,7 +201,8 @@ public class LoanServiceImpl implements LoanService {
                 .maxEligibleAmount(savedApplication.getMaxEligibleAmount())
                 .tenorMonths(savedApplication.getTenorMonths())
                 .status(savedApplication.getStatus())
-                .message("Loan application submitted successfully. It is currently under review.")
+                .message("Loan successfully disbursed. Amount " + request.getRequestedAmount()
+                        + " added to your wallet.")
                 .createdAt(savedApplication.getCreatedAt())
                 .build();
     }
@@ -184,11 +232,44 @@ public class LoanServiceImpl implements LoanService {
         product.setMaxAmount(request.getMaxAmount());
         product.setMinTenorMonths(request.getMinTenorMonths());
         product.setMaxTenorMonths(request.getMaxTenorMonths());
+        product.setScoringMultiplier(request.getScoringMultiplier());
         return product;
     }
 
     @Override
-    public List<LoanProduct> getAllLoanProducts() {
-        return loanProductRepository.findAll();
+    public List<LoanProductOption> getAllLoanProducts(UUID userId) {
+        // Get all loan products and current eligibility statuses
+        List<LoanProduct> products = loanProductRepository.findAll();
+        List<LoanEligibility> checks = loanEligibilityRepository.findByUserId(userId);
+
+        // Map products to options with check status
+        return products.stream()
+                .map(product -> {
+                    Optional<LoanEligibility> eligibilityCheck = checks.stream()
+                            .filter(c -> c.getProduct().getId().equals(product.getId()))
+                            .findFirst();
+
+                    BigDecimal maxLimit = eligibilityCheck.map(LoanEligibility::getMaxEligibleAmount)
+                            .orElse(BigDecimal.ZERO);
+                    boolean isChecked = eligibilityCheck.map(LoanEligibility::isChecked).orElse(false);
+                    String statusMessage = eligibilityCheck.map(LoanEligibility::getStatusMessage)
+                            .orElse("Not Checked");
+
+                    return LoanProductOption.builder()
+                            .productId(product.getId())
+                            .productName(product.getName())
+                            .description(product.getDescription())
+                            .minAmount(product.getMinAmount())
+                            .maxAmount(product.getMaxAmount())
+                            .maxEligibleAmount(maxLimit)
+                            .interestRateMonthly(product.getInterestRateMonthly())
+                            .penaltyRateDaily(product.getPenaltyRateDaily())
+                            .minTenorMonths(product.getMinTenorMonths())
+                            .maxTenorMonths(product.getMaxTenorMonths())
+                            .statusMessage(statusMessage)
+                            .isChecked(isChecked)
+                            .build();
+                })
+                .toList();
     }
 }

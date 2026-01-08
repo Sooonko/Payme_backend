@@ -624,49 +624,67 @@
 ## Loans
 
 ### 1. Check Loan Eligibility
-Check if the current user is eligible for a loan and calculate their maximum limit.
+Performs an eligibility check for a specific loan product and returns success/failure status. The eligibility result is saved to the database.
 
 **URL:** `/api/v1/loans/eligibility`
 **Method:** `GET`
 **Auth Required:** Yes
 
-**Success Response (200 OK):**
+**Query Parameters:**
+- `productId` (required): UUID of the loan product to check eligibility for.
+
+**Success Response - Eligible (200 OK):**
 ```json
 {
   "success": true,
-  "message": "Wait! You have loan options available.",
+  "message": "Operation completed successfully",
   "data": {
-    "eligible": true,
-    "message": "Wait! You have loan options available.",
-    "options": [
-      {
-        "productId": "550e8400-e29b-41d4-a716-446655440000",
-        "productName": "Payme Nano Loan",
-        "maxEligibleAmount": 500000.0,
-        "interestRateMonthly": 3.5,
-        "penaltyRateDaily": 0.5,
-        "minTenorMonths": 1,
-        "maxTenorMonths": 3,
-        "statusMessage": "Eligible"
-      },
-      {
-        "productId": "660e8400-e29b-41d4-a716-446655440000",
-        "productName": "Payme Plus Loan",
-        "maxEligibleAmount": 0.0,
-        "interestRateMonthly": 2.5,
-        "penaltyRateDaily": 0.3,
-        "minTenorMonths": 3,
-        "maxTenorMonths": 12,
-        "statusMessage": "Your scoring does not meet the minimum requirements for this product."
-      }
-    ]
+    "success": true,
+    "message": "Eligible for loan product: Payme Nano Loan"
   },
   "timestamp": "2023-10-27T11:00:00.123456"
 }
 ```
 
+**Success Response - Not Eligible (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Operation completed successfully",
+  "data": {
+    "success": false,
+    "message": "Your scoring does not meet the minimum requirements for this product."
+  },
+  "timestamp": "2023-10-27T11:00:00.123456"
+}
+```
+
+**Success Response - Has Active Loan (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Operation completed successfully",
+  "data": {
+    "success": false,
+    "message": "You already have an active loan."
+  },
+  "timestamp": "2023-10-27T11:00:00.123456"
+}
+```
+
+**Error Response - Missing productId (400 Bad Request):**
+```json
+{
+  "success": false,
+  "message": "Required request parameter 'productId' is not present",
+  "errorCode": "BAD_REQUEST",
+  "data": null,
+  "timestamp": "2023-10-27T11:00:00.123456"
+}
+```
+
 ### 2. Apply for Loan
-Submit a loan application.
+Submit a loan application. Upon successful validation, the loan is immediately approved and disbursed. The funds are credited to the user's wallet, and the loan amount is deducted from their eligibility limit.
 
 **URL:** `/api/v1/loans/apply`
 **Method:** `POST`
@@ -693,8 +711,8 @@ Submit a loan application.
     "requestedAmount": 200000.0,
     "maxEligibleAmount": 500000.0,
     "tenorMonths": 2,
-    "status": "PENDING",
-    "message": "Loan application submitted successfully. It is currently under review.",
+    "status": "APPROVED",
+    "message": "Loan successfully disbursed. Amount 200000.0 added to your wallet.",
     "createdAt": "2023-10-27T11:00:00.123456"
   },
   "timestamp": "2023-10-27T11:00:00.123456"
@@ -718,7 +736,8 @@ Register a new loan product (Typically for internal/admin use).
   "minAmount": 50000.0,
   "maxAmount": 1000000.0,
   "minTenorMonths": 1,
-  "maxTenorMonths": 6
+  "maxTenorMonths": 6,
+  "scoringMultiplier": 1.5
 }
 ```
 
@@ -745,11 +764,25 @@ Register a new loan product (Typically for internal/admin use).
 ```
 
 ### 4. Get All Loan Products
-Retrieve a list of all available loan products.
+Retrieve a list of all available loan products with the current user's eligibility information and loan limits.
 
 **URL:** `/api/v1/loans/products`
 **Method:** `GET`
 **Auth Required:** Yes
+
+**Response Fields:**
+- `productId`: Unique identifier for the loan product
+- `productName`: Name of the loan product
+- `description`: Description of the loan product
+- `minAmount`: Minimum loan amount for this product
+- `maxAmount`: Maximum loan amount for this product
+- `maxEligibleAmount`: Maximum loan amount the user is eligible for (0.0 if not checked or not eligible)
+- `interestRateMonthly`: Monthly interest rate (%)
+- `penaltyRateDaily`: Daily penalty rate for late payments (%)
+- `minTenorMonths`: Minimum loan duration in months
+- `maxTenorMonths`: Maximum loan duration in months
+- `statusMessage`: Eligibility status message ("Not Checked", "Eligible", or reason for ineligibility)
+- `isChecked`: Whether eligibility has been checked for this product
 
 **Success Response (200 OK):**
 ```json
@@ -758,17 +791,32 @@ Retrieve a list of all available loan products.
   "message": "Operation completed successfully",
   "data": [
     {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "name": "Payme Nano Loan",
+      "productId": "550e8400-e29b-41d4-a716-446655440000",
+      "productName": "Payme Nano Loan",
       "description": "Short term loan for daily expenses",
-      "interestRateMonthly": 3.5,
-      "penaltyRateDaily": 0.5,
       "minAmount": 50000.0,
       "maxAmount": 1000000.0,
+      "maxEligibleAmount": 500000.0,
+      "interestRateMonthly": 3.5,
+      "penaltyRateDaily": 0.5,
       "minTenorMonths": 1,
       "maxTenorMonths": 6,
-      "createdAt": "2023-10-27T11:00:00.123456",
-      "updatedAt": "2023-10-27T11:00:00.123456"
+      "statusMessage": "Eligible for loan product: Payme Nano Loan",
+      "isChecked": true
+    },
+    {
+      "productId": "660e8400-e29b-41d4-a716-446655440000",
+      "productName": "Payme Plus Loan",
+      "description": "Medium term loan for larger purchases",
+      "minAmount": 100000.0,
+      "maxAmount": 5000000.0,
+      "maxEligibleAmount": 0.0,
+      "interestRateMonthly": 2.5,
+      "penaltyRateDaily": 0.3,
+      "minTenorMonths": 3,
+      "maxTenorMonths": 12,
+      "statusMessage": "Not Checked",
+      "isChecked": false
     }
   ],
   "timestamp": "2023-10-27T11:00:00.123456"

@@ -1,8 +1,8 @@
 package com.itwizard.payme.domain;
 
-import com.itwizard.payme.domain.enums.LoanApplicationStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
@@ -13,11 +13,14 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "loan_applications")
+@Table(name = "loan_eligibilities", uniqueConstraints = {
+        @UniqueConstraint(columnNames = { "user_id", "product_id" })
+})
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class LoanApplication {
+public class LoanEligibility {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -31,23 +34,15 @@ public class LoanApplication {
     @JoinColumn(name = "product_id", nullable = false)
     private LoanProduct product;
 
-    @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal requestedAmount;
-
-    @Column(precision = 19, scale = 2)
+    @Column(nullable = false)
     private BigDecimal maxEligibleAmount;
 
     @Column(nullable = false)
-    private Integer tenorMonths;
+    private String statusMessage;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
-    private LoanApplicationStatus status;
-
-    @Column(columnDefinition = "TEXT")
-    private String rejectionReason;
-
-    private LocalDateTime disbursedAt;
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean checked = false;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

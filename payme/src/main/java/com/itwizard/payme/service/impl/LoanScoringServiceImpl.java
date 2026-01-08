@@ -63,7 +63,9 @@ public class LoanScoringServiceImpl implements LoanScoringService {
 
         // --- 3. FINAL CALCULATION (Hybrid Approach) ---
         // We take the internal calculation and adjust it by the external limit
-        BigDecimal internalLimit = baseAmount.add(balanceBonus).add(volumeBonus).multiply(ageMultiplier);
+        BigDecimal internalLimit = baseAmount.add(balanceBonus).add(volumeBonus)
+                .multiply(ageMultiplier)
+                .multiply(product.getScoringMultiplier());
 
         // Final limit = Min(InternalLimit, ExternalLimit - CurrentDebt)
         BigDecimal availableExternalLimit = externalCreditLimit.subtract(currentDebtInOtherBanks);

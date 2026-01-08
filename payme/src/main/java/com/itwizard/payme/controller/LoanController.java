@@ -2,6 +2,7 @@ package com.itwizard.payme.controller;
 
 import com.itwizard.payme.domain.LoanProduct;
 import com.itwizard.payme.dto.LoanEligibilityResponse;
+import com.itwizard.payme.dto.LoanProductOption;
 import com.itwizard.payme.dto.request.LoanApplicationRequest;
 import com.itwizard.payme.dto.request.LoanProductRequest;
 import com.itwizard.payme.dto.response.LoanApplicationResponse;
@@ -15,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/loans")
@@ -25,8 +27,10 @@ public class LoanController {
 
     @GetMapping("/eligibility")
     public ResponseEntity<StandardResponse<LoanEligibilityResponse>> checkEligibility(
-            @CurrentUser UserPrincipal currentUser) {
-        return ResponseEntity.ok(StandardResponse.success(loanService.checkEligibility(currentUser.getId())));
+            @CurrentUser UserPrincipal currentUser,
+            @RequestParam UUID productId) {
+        return ResponseEntity
+                .ok(StandardResponse.success(loanService.checkProductEligibility(currentUser.getId(), productId)));
     }
 
     @PostMapping("/apply")
@@ -47,7 +51,8 @@ public class LoanController {
     }
 
     @GetMapping("/products")
-    public ResponseEntity<StandardResponse<List<LoanProduct>>> getAllLoanProducts() {
-        return ResponseEntity.ok(StandardResponse.success(loanService.getAllLoanProducts()));
+    public ResponseEntity<StandardResponse<List<LoanProductOption>>> getAllLoanProducts(
+            @CurrentUser UserPrincipal currentUser) {
+        return ResponseEntity.ok(StandardResponse.success(loanService.getAllLoanProducts(currentUser.getId())));
     }
 }

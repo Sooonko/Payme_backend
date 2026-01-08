@@ -5,14 +5,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoanEligibilityResponse {
-    private boolean eligible;
+    private boolean success;
     private String message;
-    private List<LoanProductOption> options;
 }

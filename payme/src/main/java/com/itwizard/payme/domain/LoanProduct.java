@@ -46,6 +46,9 @@ public class LoanProduct {
     @Column(nullable = false)
     private Integer maxTenorMonths;
 
+    @Column(nullable = false, precision = 5, scale = 2, columnDefinition = "DECIMAL(5,2) DEFAULT 1.0")
+    private BigDecimal scoringMultiplier = BigDecimal.valueOf(1.0);
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
