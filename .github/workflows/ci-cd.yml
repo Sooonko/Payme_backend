@@ -69,6 +69,9 @@ jobs:
         steps:
             - name: Deploy to Self-Hosted Runner
               run: |
+                  # Ensure image name is lowercase (Docker requirement)
+                  IMAGE_NAME_LOWER=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+
                   # Manually create docker config to bypass "secret service" error
                   # This directly writes the auth token to a temp config file
                   export DOCKER_CONFIG=$(mktemp -d)
@@ -78,7 +81,7 @@ jobs:
                   # Now docker commands will use this config without needing 'docker login'
 
                   # Pull the latest image
-                  docker pull ghcr.io/${{ env.IMAGE_NAME }}:latest
+                  docker pull ghcr.io/$IMAGE_NAME_LOWER:latest
 
                   # Stop and remove existing container
                   docker stop payme || true
@@ -89,4 +92,4 @@ jobs:
                     --name payme \
                     --restart unless-stopped \
                     -p 8080:8080 \
-                    ghcr.io/${{ env.IMAGE_NAME }}:latest
+                    ghcr.io/$IMAGE_NAME_LOWER:latest
