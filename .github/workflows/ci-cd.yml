@@ -69,12 +69,13 @@ jobs:
         steps:
             - name: Deploy to Self-Hosted Runner
               run: |
-                  # Create a temporary docker config to avoid "secret service" errors
+                  # Manually create docker config to bypass "secret service" error
+                  # This directly writes the auth token to a temp config file
                   export DOCKER_CONFIG=$(mktemp -d)
-                  echo '{"credsStore":""}' > $DOCKER_CONFIG/config.json
+                  AUTH=$(echo -n "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" | base64 -w 0)
+                  echo "{\"auths\":{\"ghcr.io\":{\"auth\":\"$AUTH\"}}}" > $DOCKER_CONFIG/config.json
 
-                  # Log in to GitHub Container Registry
-                  echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+                  # Now docker commands will use this config without needing 'docker login'
 
                   # Pull the latest image
                   docker pull ghcr.io/${{ env.IMAGE_NAME }}:latest
