@@ -63,32 +63,25 @@ jobs:
 
     deploy:
         needs: build-and-push
-        runs-on: ubuntu-latest
+        runs-on: self-hosted
         if: github.ref == 'refs/heads/main' # Only run deploy on main branch push
 
         steps:
-            - name: Deploy to Server via SSH
-              uses: appleboy/ssh-action@v1.0.3
-              with:
-                  host: ${{ secrets.HOST || '202.131.248.107' }}
-                  username: ${{ secrets.USERNAME || 'itwizard' }}
-                  password: ${{ secrets.PASSWORD || 'itwizard@0315' }}
-                  port: ${{ secrets.PORT || '22' }}
-                  script: |
-                      # Log in to GitHub Container Registry
-                      echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            - name: Deploy to Self-Hosted Runner
+              run: |
+                  # Log in to GitHub Container Registry
+                  echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-                      # Pull the latest image
-                      docker pull ghcr.io/${{ env.IMAGE_NAME }}:latest
+                  # Pull the latest image
+                  docker pull ghcr.io/${{ env.IMAGE_NAME }}:latest
 
-                      # Stop and remove existing container
-                      docker stop payme || true
-                      docker rm payme || true
+                  # Stop and remove existing container
+                  docker stop payme || true
+                  docker rm payme || true
 
-                      # Run the new container
-                      # Make sure to set necessary environment variables or pass a .env file
-                      docker run -d \
-                        --name payme \
-                        --restart unless-stopped \
-                        -p 8080:8080 \
-                        ghcr.io/${{ env.IMAGE_NAME }}:latest
+                  # Run the new container
+                  docker run -d \
+                    --name payme \
+                    --restart unless-stopped \
+                    -p 8080:8080 \
+                    ghcr.io/${{ env.IMAGE_NAME }}:latest
