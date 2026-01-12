@@ -70,7 +70,7 @@ jobs:
             - name: Deploy to Server via SSH
               uses: appleboy/ssh-action@v1.0.3
               with:
-                  host: ${{ secrets.HOST || '192.168.0.171' }}
+                  host: ${{ secrets.HOST || '202.131.248.107' }}
                   username: ${{ secrets.USERNAME || 'itwizard' }}
                   password: ${{ secrets.PASSWORD || 'itwizard@0315' }}
                   port: ${{ secrets.PORT || '22' }}
